@@ -1,0 +1,594 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: WebForge AI API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: projects
+    description: Project management
+  - name: generate
+    description: AI generation
+  - name: stats
+    description: Dashboard statistics
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List user projects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInput"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get project by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdate"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /projects/{id}/generate:
+    post:
+      operationId: generateProject
+      tags: [generate]
+      summary: Generate project with AI
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateInput"
+      responses:
+        "200":
+          description: Generation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationResult"
+        "429":
+          description: Rate limit exceeded
+
+  /generate/quick:
+    post:
+      operationId: quickGenerate
+      tags: [generate]
+      summary: Quick generate from prompt (creates project + generates)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuickGenerateInput"
+      responses:
+        "200":
+          description: Quick generation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationResult"
+
+  /stats/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [stats]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /stats/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [stats]
+      summary: Get recent project activity
+      responses:
+        "200":
+          description: Recent activity list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /plans:
+    get:
+      operationId: listPlans
+      tags: [stats]
+      summary: List available subscription plans
+      responses:
+        "200":
+          description: Available plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        plan:
+          type: string
+          enum: [free, pro, business]
+        projectsThisMonth:
+          type: integer
+        projectLimit:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - email
+        - name
+        - plan
+        - projectsThisMonth
+        - createdAt
+
+    RegisterInput:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+      required:
+        - email
+        - password
+        - name
+
+    LoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [landing_page, ecommerce, blog, portfolio, dashboard, saas, web_app]
+        status:
+          type: string
+          enum: [draft, generating, ready, published, error]
+        prompt:
+          type: string
+        generatedCode:
+          type: ["string", "null"]
+        previewUrl:
+          type: ["string", "null"]
+        thumbnail:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - userId
+        - name
+        - type
+        - status
+        - prompt
+        - createdAt
+        - updatedAt
+
+    ProjectInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [landing_page, ecommerce, blog, portfolio, dashboard, saas, web_app]
+        prompt:
+          type: string
+      required:
+        - name
+        - type
+        - prompt
+
+    ProjectUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        prompt:
+          type: string
+        status:
+          type: string
+          enum: [draft, generating, ready, published, error]
+
+    GenerateInput:
+      type: object
+      properties:
+        prompt:
+          type: string
+        regenerate:
+          type: boolean
+      required:
+        - prompt
+
+    QuickGenerateInput:
+      type: object
+      properties:
+        prompt:
+          type: string
+        type:
+          type: string
+          enum: [landing_page, ecommerce, blog, portfolio, dashboard, saas, web_app]
+      required:
+        - prompt
+
+    GenerationResult:
+      type: object
+      properties:
+        projectId:
+          type: integer
+        status:
+          type: string
+        generatedCode:
+          type: ["string", "null"]
+        previewUrl:
+          type: ["string", "null"]
+        structure:
+          $ref: "#/components/schemas/ProjectStructure"
+        message:
+          type: string
+      required:
+        - projectId
+        - status
+        - message
+
+    ProjectStructure:
+      type: object
+      properties:
+        pages:
+          type: array
+          items:
+            type: string
+        features:
+          type: array
+          items:
+            type: string
+        techStack:
+          type: array
+          items:
+            type: string
+        dbSchema:
+          type: ["string", "null"]
+        apiEndpoints:
+          type: array
+          items:
+            type: string
+      required:
+        - pages
+        - features
+        - techStack
+        - apiEndpoints
+
+    DashboardStats:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+        publishedProjects:
+          type: integer
+        generationsThisMonth:
+          type: integer
+        planLimit:
+          type: ["integer", "null"]
+        planName:
+          type: string
+        projectsByType:
+          type: array
+          items:
+            $ref: "#/components/schemas/TypeCount"
+        recentGenerations:
+          type: integer
+      required:
+        - totalProjects
+        - publishedProjects
+        - generationsThisMonth
+        - planName
+        - projectsByType
+        - recentGenerations
+
+    TypeCount:
+      type: object
+      properties:
+        type:
+          type: string
+        count:
+          type: integer
+      required:
+        - type
+        - count
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        projectName:
+          type: string
+        action:
+          type: string
+        timestamp:
+          type: string
+        type:
+          type: string
+      required:
+        - id
+        - projectId
+        - projectName
+        - action
+        - timestamp
+        - type
+
+    Plan:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        interval:
+          type: string
+        projectLimit:
+          type: ["integer", "null"]
+        features:
+          type: array
+          items:
+            type: string
+        highlighted:
+          type: boolean
+      required:
+        - id
+        - name
+        - price
+        - currency
+        - interval
+        - features
+        - highlighted
